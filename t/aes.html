@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>AES加解密</title>
   <script src="https://ghsrc.wyf9.top/jsc/crypto.js"></script>
 </head>
+
 <body>
   <h1>AES加解密</h1>
 
@@ -11,12 +13,12 @@
     <label for="encryptionKey">密钥：</label>
     <input type="password" id="encryptionKey">
   </div>
-  
+
   <div>
     <label for="plaintext">明文：</label>
     <input type="text" id="plaintext">
   </div>
-  
+
   <div>
     <button onclick="encrypt()">加密</button>
     <button onclick="decrypt()">解密</button>
@@ -24,27 +26,29 @@
 
   <div>
     <label for="ciphertext">密文：</label>
-    <input type="text" id="ciphertext" readonly>
+    <textarea id="ciphertext" readonly></textarea>
   </div>
-  
+
   <script>
     function encrypt() {
       var encryptionKey = document.getElementById('encryptionKey').value;
       var plaintext = document.getElementById('plaintext').value;
-      
+
       var encryptedData = CryptoJS.AES.encrypt(plaintext, encryptionKey).toString();
-      
+
       document.getElementById('ciphertext').value = encryptedData;
     }
-    
+
     function decrypt() {
       var encryptionKey = document.getElementById('encryptionKey').value;
       var ciphertext = document.getElementById('ciphertext').value;
-      
-      var decryptedData = CryptoJS.AES.decrypt(ciphertext, encryptionKey).toString(CryptoJS.enc.Utf8);
-      
-      document.getElementById('plaintext').value = decryptedData;
+
+      var decryptedData = CryptoJS.AES.decrypt(ciphertext, encryptionKey);
+      var plaintext = CryptoJS.enc.Utf8.stringify(decryptedData);
+
+      document.getElementById('plaintext').value = plaintext;
     }
   </script>
 </body>
+
 </html>
