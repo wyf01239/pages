@@ -11,37 +11,37 @@
   <div>
     <label for="keyAddress">Key地址：</label>
     <input type="text" id="keyAddress">
-    
-    <label for="encryptionKey">密钥：</label>
-    <input type="password" id="encryptionKey">
+
+    <label for="encryptionKeyInput">密钥：</label>
+    <input type="password" id="encryptionKeyInput">
   </div>
-  
+
   <hr>
-  
+
   <button onclick="listKeyValues()">点击列出列表</button>
-  
+
   <h3>列表：</h3>
   <div id="keyValueList"></div>
-  
+
   <hr>
-  
+
   <h3>创建：</h3>
   <input type="text" id="keyInput" placeholder="请输入键">
   <input type="text" id="valueInput" placeholder="请输入值">
   <button onclick="createOrUpdateKeyValue()">点击创建/更新</button>
-  
+
   <hr>
-  
+
   <h3>删除：</h3>
   <input type="text" id="deleteKeyInput" placeholder="请输入要删除的键">
   <button onclick="deleteKeyValue()">点击删除</button>
-  
+
   <hr>
-  
+
   <h3>密钥格式（JSON）：</h3>
-  
+
   <pre id="encryptionKeyJSON"></pre>
-  
+
   <script>
     // 默认加密密钥
     let encryptionKey = '';
@@ -49,21 +49,21 @@
     // 解密函数
     function decryptData(data, encryptionKey) {
       var decryptedData;
-      
+
       try {
         var bytes = CryptoJS.AES.decrypt(data, encryptionKey);
         decryptedData = bytes.toString(CryptoJS.enc.Utf8);
       } catch (error) {
         console.error('解密出现错误：', error);
       }
-      
+
       return decryptedData;
     }
 
     // 网页初始化
     function initialize() {
       // 输入密钥
-      document.getElementById('encryptionKey').addEventListener('input', function() {
+      document.getElementById('encryptionKeyInput').addEventListener('input', function() {
         encryptionKey = this.value;
       });
     }
@@ -78,12 +78,12 @@
       }
 
       try {
-        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${encryptionKey}/storage/kv/namespaces/${keyAddress}/values`;
-        
+        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/{{apiKey}}/storage/kv/namespaces/${keyAddress}/values`;
+
         const response = await fetch(apiUrl, {
           headers: {
-            'Authorization': `Bearer ${encryptionKey}`,
-            'X-Auth-Email': encryptionKey,
+            'Authorization': `Bearer {{apiToken}}`,
+            'X-Auth-Email': '{{apiKey}}',
           },
         });
 
@@ -100,7 +100,7 @@
         console.error('出现错误：', error);
       }
     }
-    
+
     // 创建或更新键值对
     async function createOrUpdateKeyValue() {
       const keyAddress = document.getElementById('keyAddress').value.trim();
@@ -118,13 +118,13 @@
       }
 
       try {
-        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${encryptionKey}/storage/kv/namespaces/${keyAddress}/values/${key}`;
+        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/{{apiKey}}/storage/kv/namespaces/${keyAddress}/values/${key}`;
 
         const response = await fetch(apiUrl, {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${encryptionKey}`,
-            'X-Auth-Email': encryptionKey,
+            'Authorization': `Bearer {{apiToken}}`,
+            'X-Auth-Email': '{{apiKey}}',
             'Content-Type': 'text/plain',
           },
           body: value,
@@ -133,7 +133,7 @@
         const data = await response.json();
         console.log(data.result);
 
-        // 可使用数据来更新页面的 UI
+        // 更新页面的 UI
       } catch (error) {
         console.error('出现错误：', error);
       }
@@ -155,20 +155,20 @@
       }
 
       try {
-        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${encryptionKey}/storage/kv/namespaces/${keyAddress}/values/${key}`;
+        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/{{apiKey}}/storage/kv/namespaces/${keyAddress}/values/${key}`;
 
         const response = await fetch(apiUrl, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${encryptionKey}`,
-            'X-Auth-Email': encryptionKey,
+            'Authorization': `Bearer {{apiToken}}`,
+            'X-Auth-Email': '{{apiKey}}',
           },
         });
 
         const data = await response.json();
         console.log(data.result);
 
-        // 可使用数据来更新页面的 UI
+        // 更新页面的 UI
       } catch (error) {
         console.error('出现错误：', error);
       }
