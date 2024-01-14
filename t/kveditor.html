@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Cloudflare KV Editor</title>
   <script src="https://ghsrc.wyf9.top/jsc/crypto.js"></script>
 </head>
+
 <body>
   <h1>Cloudflare KV Editor</h1>
   <hr>
@@ -12,8 +14,8 @@
     <label for="keyAddress">Key地址：</label>
     <input type="text" id="keyAddress">
 
-    <label for="encryptionKeyInput">密钥：</label>
-    <input type="password" id="encryptionKeyInput">
+    <label for="encryptionKey">密钥：</label>
+    <input type="password" id="encryptionKey">
   </div>
 
   <hr>
@@ -43,52 +45,58 @@
   <pre id="encryptionKeyJSON"></pre>
 
   <script>
-    // 默认加密密钥
-    let encryptionKey = '';
-
     // 解密函数
     function decryptData(data, encryptionKey) {
-      var decryptedData;
-
       try {
         var bytes = CryptoJS.AES.decrypt(data, encryptionKey);
-        decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+        var decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+        return decryptedData;
       } catch (error) {
-        console.error('解密出现错误：', error);
+        alert('解密出现错误：' + error);
+        return null;
       }
-
-      return decryptedData;
     }
 
     // 网页初始化
     function initialize() {
       // 输入密钥
-      document.getElementById('encryptionKeyInput').addEventListener('input', function() {
-        encryptionKey = this.value;
+      document.getElementById('encryptionKey').addEventListener('input', function () {
+        var encryptionKey = this.value;
+
+        // 获取并解密密钥JSON数据
+        var encryptedKeyData = document.getElementById('encryptionKeyJSON').textContent.trim();
+        var keyData = JSON.parse(decryptData(encryptedKeyData, encryptionKey));
+
+        // 将解密后的API密钥、API令牌和命名空间ID保存到对应的输入框中
+        document.getElementById('apiKey').value = keyData.apiKey;
+        document.getElementById('apiToken').value = keyData.apiToken;
+        document.getElementById('namespaceId').value = keyData.namespaceId;
       });
     }
 
     // 列出键值对
     async function listKeyValues() {
-      const keyAddress = document.getElementById('keyAddress').value.trim();
+      var apiKey = document.getElementById('apiKey').value.trim();
+      var apiToken = document.getElementById('apiToken').value.trim();
+      var namespaceId = document.getElementById('namespaceId').value.trim();
 
-      if (keyAddress === '') {
-        console.error('请输入Key地址');
+      if (apiKey === '' || apiToken === '' || namespaceId === '') {
+        alert('请输入完整的API密钥、API令牌和命名空间ID');
         return;
       }
 
       try {
-        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/{{apiKey}}/storage/kv/namespaces/${keyAddress}/values`;
+        var apiUrl = `https://api.cloudflare.com/client/v4/accounts/${apiKey}/storage/kv/namespaces/${namespaceId}/values`;
 
         const response = await fetch(apiUrl, {
           headers: {
-            'Authorization': `Bearer {{apiToken}}`,
-            'X-Auth-Email': '{{apiKey}}',
+            'Authorization': `Bearer ${decryptData(apiToken, encryptionKey)}`,
+            'X-Auth-Email': apiKey,
           },
         });
 
         const data = await response.json();
-        console.log(data.result);
+        alert('列出列表结果：' + JSON.stringify(data.result));
 
         // 更新页面上的键值对列表
         var keyValueList = document.getElementById('keyValueList');
@@ -97,80 +105,84 @@
           keyValueList.innerHTML += `<p>${key} => ${data.result[key]}</p>`;
         }
       } catch (error) {
-        console.error('出现错误：', error);
+        alert('出现错误：' + error);
       }
     }
 
     // 创建或更新键值对
     async function createOrUpdateKeyValue() {
-      const keyAddress = document.getElementById('keyAddress').value.trim();
-      const key = document.getElementById('keyInput').value.trim();
-      const value = document.getElementById('valueInput').value;
+      var apiKey = document.getElementById('apiKey').value.trim();
+      var apiToken = document.getElementById('apiToken').value.trim();
+      var namespaceId = document.getElementById('namespaceId').value.trim();
+      var key = document.getElementById('keyInput').value.trim();
+      var value = document.getElementById('valueInput').value;
 
-      if (keyAddress === '') {
-        console.error('请输入Key地址');
+      if (apiKey === '' || apiToken === '' || namespaceId === '') {
+        alert('请输入完整的API密钥、API令牌和命名空间ID');
         return;
       }
 
       if (key === '' || value === '') {
-        console.error('请输入键和值');
+        alert('请输入键和值');
         return;
       }
 
       try {
-        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/{{apiKey}}/storage/kv/namespaces/${keyAddress}/values/${key}`;
+        var apiUrl = `https://api.cloudflare.com/client/v4/accounts/${apiKey}/storage/kv/namespaces/${namespaceId}/values/${key}`;
 
         const response = await fetch(apiUrl, {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer {{apiToken}}`,
-            'X-Auth-Email': '{{apiKey}}',
+            'Authorization': `Bearer ${decryptData(apiToken, encryptionKey)}`,
+            'X-Auth-Email': apiKey,
             'Content-Type': 'text/plain',
           },
           body: value,
         });
 
         const data = await response.json();
-        console.log(data.result);
+        alert('创建/更新结果：' + JSON.stringify(data.result));
 
-        // 更新页面的 UI
+        // 可使用数据来更新页面的 UI
       } catch (error) {
-        console.error('出现错误：', error);
+        alert('出现错误：' + error);
       }
     }
 
     // 删除键值对
     async function deleteKeyValue() {
-      const keyAddress = document.getElementById('keyAddress').value.trim();
-      const key = document.getElementById('deleteKeyInput').value.trim();
+      var apiKey = document.getElementById('apiKey').value.trim();
+      var apiToken = document.getElementById('apiToken').value.trim();
+      var namespaceId = document.getElementById('namespaceId').value.trim();
+      var key = document.getElementById('deleteKeyInput').value.trim();
 
-      if (keyAddress === '') {
-        console.error('请输入Key地址');
+      if (apiKey === '' || apiToken === '' || namespaceId === '') {
+        alert('请输入完整的API密钥、API令牌和命名空间ID');
         return;
       }
 
       if (key === '') {
-        console.error('请输入要删除的键');
+        alert('请输入要删除的键');
         return;
       }
 
       try {
-        const apiUrl = `https://api.cloudflare.com/client/v4/accounts/{{apiKey}}/storage/kv/namespaces/${keyAddress}/values/${key}`;
+        var apiUrl = `https://api.cloudflare.com/client/v4/accounts/${apiKey}/storage/kv/namespaces/${namespaceId}/values/${key}`;
 
         const response = await fetch(apiUrl, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer {{apiToken}}`,
-            'X-Auth-Email': '{{apiKey}}',
+            'Authorization': `Bearer ${decryptData(apiToken, encryptionKey)}`,
+            'X-Auth-Email': apiKey,
           },
         });
 
         const data = await response.json();
-        console.log(data.result);
+        alert('删除结果：' + JSON.stringify(data.result));
 
-        // 更新页面的 UI
+        // 可使用数据来更新页面的 UI
       } catch (error) {
-        console.error('出现错误：', error);
+        alert('出现错误：' + error);
       }
     }
 
@@ -178,4 +190,5 @@
     initialize();
   </script>
 </body>
+
 </html>
