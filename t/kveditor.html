@@ -9,10 +9,10 @@
   <hr>
 
   <div>
-    <label for="keyAddress">Key地址：</label>
+    <label for="keyAddress">Key地址: </label>
     <input type="text" id="keyAddress">
 
-    <label for="encryptionKey">密钥：</label>
+    <label for="encryptionKey">密钥: </label>
     <input type="password" id="encryptionKey">
   </div>
 
@@ -20,23 +20,23 @@
 
   <button onclick="loadKeyData()">获取密钥数据</button>
 
-  <h3>密钥数据：</h3>
+  <h3>密钥数据: </h3>
   <pre id="keyData"></pre>
 
   <hr>
 
   <div>
-    <label for="apiKey">API Key：</label>
+    <label for="apiKey">API Key: </label>
     <input type="text" id="apiKey">
   </div>
 
   <div>
-    <label for="apiToken">API Token：</label>
+    <label for="apiToken">API Token: </label>
     <input type="text" id="apiToken">
   </div>
 
   <div>
-    <label for="namespaceId">Namespace ID：</label>
+    <label for="namespaceId">Namespace ID: </label>
     <input type="text" id="namespaceId">
   </div>
 
@@ -44,19 +44,19 @@
 
   <button onclick="listKeyValues()">点击列出列表</button>
 
-  <h3>列表：</h3>
+  <h3>列表: </h3>
   <div id="keyValueList"></div>
 
   <hr>
 
-  <h3>创建：</h3>
+  <h3>创建: </h3>
   <input type="text" id="keyInput" placeholder="请输入键">
   <input type="text" id="valueInput" placeholder="请输入值">
   <button onclick="createOrUpdateKeyValue()">点击创建/更新</button>
 
   <hr>
 
-  <h3>删除：</h3>
+  <h3>删除: </h3>
   <input type="text" id="deleteKeyInput" placeholder="请输入要删除的键">
   <button onclick="deleteKeyValue()">点击删除</button>
 
@@ -68,7 +68,7 @@
         var decryptedData = bytes.toString(CryptoJS.enc.Utf8);
         return decryptedData;
       } catch (error) {
-        throw new Error('解密出现错误：' + error);
+        throw new Error('解密出现错误: ' + error);
       }
     }
 
@@ -106,7 +106,7 @@
 
         document.getElementById('keyData').textContent = JSON.stringify(keyData, null, 2);
       } catch (error) {
-        alert('获取密钥数据出错：' + error);
+        alert('获取密钥数据出错: ' + error);
       }
     }
 
@@ -124,14 +124,17 @@
       try {
         var apiUrl = `https://api.cloudflare.com/client/v4/accounts/${apiKey}/storage/kv/namespaces/${namespaceId}/values`;
         const response = await fetch(apiUrl, {
+          method: 'GET',
           headers: {
             'Authorization': `Bearer ${apiToken}`,
             'X-Auth-Email': apiKey,
+            'Origin': 'https://p.wyf9.top'
           },
+          mode: 'cors'
         });
 
         const data = await response.json();
-        alert('列出列表结果：' + JSON.stringify(data.result));
+        alert('列出列表结果: ' + JSON.stringify(data.result));
 
         var keyValueList = document.getElementById('keyValueList');
         keyValueList.innerHTML = '';
@@ -139,7 +142,7 @@
           keyValueList.innerHTML += `<p>${key} => ${data.result[key]}</p>`;
         }
       } catch (error) {
-        alert('出现错误：' + error);
+        alert('出现错误: ' + error);
       }
     }
 
@@ -163,8 +166,9 @@
           headers: {
             'Authorization': `Bearer ${apiToken}`,
             'X-Auth-Email': apiKey,
-            'Content-Type': 'text/plain',
+            'Origin': 'https://p.wyf9.top' // 替换为你的网页域名
           },
+          mode: 'cors',  // 添加此选项以确保触发CORS请求
           body: value,
         });
 
@@ -195,7 +199,9 @@
           headers: {
             'Authorization': `Bearer ${apiToken}`,
             'X-Auth-Email': apiKey,
+            'Origin': 'https://p.wyf9.top' // 替换为你的网页域名
           },
+          mode: 'cors',  // 添加此选项以确保触发CORS请求
         });
 
         const data = await response.json();
