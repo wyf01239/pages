@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html>
-
 <head>
   <title>Cloudflare KV Editor</title>
-  <script src="https://ghsrc.wyf9.top/jsc/crypto.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
 </head>
-
 <body>
   <h1>Cloudflare KV Editor</h1>
   <hr>
@@ -16,6 +14,30 @@
 
     <label for="encryptionKey">密钥：</label>
     <input type="password" id="encryptionKey">
+  </div>
+
+  <hr>
+
+  <button onclick="loadKeyData()">获取密钥数据</button>
+
+  <h3>密钥数据：</h3>
+  <pre id="keyData"></pre>
+
+  <hr>
+
+  <div>
+    <label for="apiKey">API Key：</label>
+    <input type="text" id="apiKey">
+  </div>
+
+  <div>
+    <label for="apiToken">API Token：</label>
+    <input type="text" id="apiToken">
+  </div>
+
+  <div>
+    <label for="namespaceId">Namespace ID：</label>
+    <input type="text" id="namespaceId">
   </div>
 
   <hr>
@@ -38,47 +60,64 @@
   <input type="text" id="deleteKeyInput" placeholder="请输入要删除的键">
   <button onclick="deleteKeyValue()">点击删除</button>
 
-  <hr>
-
-  <h3>密钥格式（JSON）：</h3>
-
-  <pre id="encryptionKeyJSON"></pre>
-
   <script>
     // 解密函数
-    function decryptData(data, encryptionKey) {
+    async function decryptData(data, encryptionKey) {
       try {
         var bytes = CryptoJS.AES.decrypt(data, encryptionKey);
         var decryptedData = bytes.toString(CryptoJS.enc.Utf8);
         return decryptedData;
       } catch (error) {
-        alert('解密出现错误：' + error);
-        return null;
+        throw new Error('解密出现错误：' + error);
       }
     }
 
-    // 网页初始化
-    function initialize() {
-      document.getElementById('encryptionKey').addEventListener('input', function () {
-        var encryptionKey = this.value;
-        var encryptedKeyData = document.getElementById('encryptionKeyJSON').textContent.trim();
-        var keyData = JSON.parse(decryptData(encryptedKeyData, encryptionKey));
+    // 获取密钥数据
+    async function loadKeyData() {
+      var keyAddress = document.getElementById('keyAddress').value.trim();
+      var encryptionKey = document.getElementById('encryptionKey').value.trim();
 
-        document.getElementById('apiKey').value = keyData.apiKey;
-        document.getElementById('apiToken').value = keyData.apiToken;
-        document.getElementById('namespaceId').value = keyData.namespaceId;
-      });
+      if (keyAddress === '' || encryptionKey === '') {
+        alert('请输入Key地址和密钥');
+        return;
+      }
+
+      try {
+        var response = await fetch(keyAddress);
+        var jsonData = await response.json();
+
+        var encryptedApiKey = jsonData.apiKey;
+        var encryptedApiToken = jsonData.apiToken;
+        var encryptedNamespaceId = jsonData.namespaceId;
+
+        var apiKey = await decryptData(encryptedApiKey, encryptionKey);
+        var apiToken = await decryptData(encryptedApiToken, encryptionKey);
+        var namespaceId = await decryptData(encryptedNamespaceId, encryptionKey);
+
+        document.getElementById('apiKey').value = apiKey;
+        document.getElementById('apiToken').value = apiToken;
+        document.getElementById('namespaceId').value = namespaceId;
+
+        var keyData = {
+          apiKey: apiKey,
+          apiToken: apiToken,
+          namespaceId: namespaceId
+        };
+
+        document.getElementById('keyData').textContent = JSON.stringify(keyData, null, 2);
+      } catch (error) {
+        alert('获取密钥数据出错：' + error);
+      }
     }
 
     // 列出键值对
     async function listKeyValues() {
-      var encryptionKey = document.getElementById('encryptionKey').value.trim();
       var apiKey = document.getElementById('apiKey').value.trim();
       var apiToken = document.getElementById('apiToken').value.trim();
       var namespaceId = document.getElementById('namespaceId').value.trim();
 
-      if (encryptionKey === '' || apiKey === '' || apiToken === '' || namespaceId === '') {
-        alert('请输入完整的密钥和API信息');
+      if (apiKey === '' || apiToken === '' || namespaceId === '') {
+        alert('请输入API Key、API Token和Namespace ID');
         return;
       }
 
@@ -86,7 +125,7 @@
         var apiUrl = `https://api.cloudflare.com/client/v4/accounts/${apiKey}/storage/kv/namespaces/${namespaceId}/values`;
         const response = await fetch(apiUrl, {
           headers: {
-            'Authorization': `Bearer ${decryptData(apiToken, encryptionKey)}`,
+            'Authorization': `Bearer ${apiToken}`,
             'X-Auth-Email': apiKey,
           },
         });
@@ -106,15 +145,14 @@
 
     // 创建或更新键值对
     async function createOrUpdateKeyValue() {
-      var encryptionKey = document.getElementById('encryptionKey').value.trim();
       var apiKey = document.getElementById('apiKey').value.trim();
       var apiToken = document.getElementById('apiToken').value.trim();
       var namespaceId = document.getElementById('namespaceId').value.trim();
       var key = document.getElementById('keyInput').value.trim();
       var value = document.getElementById('valueInput').value;
 
-      if (encryptionKey === '' || apiKey === '' || apiToken === '' || namespaceId === '' || key === '' || value === '') {
-        alert('请输入完整的密钥、API信息、键和值');
+      if (apiKey === '' || apiToken === '' || namespaceId === '' || key === '' || value === '') {
+        alert('请输入API Key、API Token、Namespace ID、键和值');
         return;
       }
 
@@ -123,7 +161,7 @@
         const response = await fetch(apiUrl, {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${decryptData(apiToken, encryptionKey)}`,
+            'Authorization': `Bearer ${apiToken}`,
             'X-Auth-Email': apiKey,
             'Content-Type': 'text/plain',
           },
@@ -140,14 +178,13 @@
 
     // 删除键值对
     async function deleteKeyValue() {
-      var encryptionKey = document.getElementById('encryptionKey').value.trim();
       var apiKey = document.getElementById('apiKey').value.trim();
       var apiToken = document.getElementById('apiToken').value.trim();
       var namespaceId = document.getElementById('namespaceId').value.trim();
       var key = document.getElementById('deleteKeyInput').value.trim();
 
-      if (encryptionKey === '' || apiKey === '' || apiToken === '' || namespaceId === '' || key === '') {
-        alert('请输入完整的密钥、API信息和键');
+      if (apiKey === '' || apiToken === '' || namespaceId === '' || key === '') {
+        alert('请输入API Key、API Token、Namespace ID及要删除的键');
         return;
       }
 
@@ -156,7 +193,7 @@
         const response = await fetch(apiUrl, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${decryptData(apiToken, encryptionKey)}`,
+            'Authorization': `Bearer ${apiToken}`,
             'X-Auth-Email': apiKey,
           },
         });
@@ -168,9 +205,6 @@
         alert('出现错误：' + error);
       }
     }
-
-    initialize();
   </script>
 </body>
-
 </html>
